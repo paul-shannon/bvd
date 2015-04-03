@@ -1,0 +1,16 @@
+exportClasses(BrowserVizDemoClass)
+
+exportMethods (
+   plot,
+   getSelection
+   )
+
+export(
+   BrowserVizDemo
+   )
+
+importClassesFrom(methods, character, integer)
+importFrom(methods, new)
+
+import(BrowserViz)
+import(BiocGenerics)

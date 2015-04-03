@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html>
+<head>
+   <title>BrowserVizDemo</title>
+   <script src="http://oncoscape.sttrcancer.org/oncoscape/js/jquery-2.1.1.js"></script>
+   <script src="http://s3.amazonaws.com/oncoscape/js/d3.min.js"></script>
+
+<style>
+
+.center {
+   margin-left: auto;
+   margin-right: auto;
+   width: 70%;
+   background-color: #b0e0e6;
+   }
+
+#browserPlot2dDiv {
+  background-color: #F0F0F0;
+  position: relative;
+  height: 400px;
+  width: 600px;
+  border: 1px solid #aaa;
+  border-radius: 5px;
+  margin-right: auto;
+  margin-left: auto;
+  margin-top: 20px;
+  margin-bottom: auto;
+  padding: 0px;
+  }
+
+.extent {
+  fill-opacity: .1;
+  stroke: #f00;
+  }
+
+.domain { 
+  fill: none; 
+  stroke: black; 
+  stroke-width; 1; 
+  } 
+
+</style>
+
+<script>
+
+//----------------------------------------------------------------------------------------------------
+var webSocketURL = window.location.href.replace("http://", "ws://");
+var websocket = new WebSocket(webSocketURL);
+var dispatchOptions = {};
+var onReadyFunctions = [];
+var plotDiv;
+var d3plotDiv;
+var selectedRegion; // assigned out of brushReader function
+var dataReceived = false;  // when true, window resize does replot of data
+var dataset; // assigned from payload of incoming plotxy message
+var xMin, xMax, yMin, yMax;  // conveniently calculated in R, part of payload
+var datasetLength;
+//----------------------------------------------------------------------------------------------------
+websocket.onmessage = function(msg)
+{
+   msg = JSON.parse(msg.data);
+   console.log("=== websocket.onmessage");
+   console.log(msg);
+   dispatchMessage(msg);
+
+} // onmessage
+//--------------------------------------------------------------------------------
+function send(msg)
+{
+   console.log("about to websocket.send cmd: " + msg.cmd);
+   websocket.send(JSON.stringify(msg));
+   
+}  // send
+//--------------------------------------------------------------------------------
+function handleWindowResize ()
+{
+   console.log("handleWindowResize")
+   plotDiv.width(0.95 * $(window).width());
+   plotDiv.height(0.90 * $(window).height());
+
+   //d3plotDiv.width(0.95 * $(window).width());
+   //d3plotDiv.height(0.90 * $(window).height());
+
+   if(dataReceived)
+      d3plot(dataset, xMin, xMax, yMin, yMax);
+
+} // handleWindowResize
+//--------------------------------------------------------------------------------
+addMessageHandler = function(cmd, func)
+{
+   if(cmd in dispatchOptions){
+      alert("javascript message handler for '" +  cmd + " already set");
+      }
+   else{
+      dispatchOptions[cmd] = func
+      }
+}
+//----------------------------------------------------------------------------------------------------
+dispatchMessage = function(msg)
+{
+   console.log("--- plot2d.html dispatchMessage: " + msg);
+
+   if (dispatchOptions[msg.cmd])
+       dispatchOptions[msg.cmd](msg)  // call the registered function with msg as argument
+   else
+      console.log("unrecognized socket request: " + msg.cmd);
+} 
+//--------------------------------------------------------------------------------------------------
+function ready(msg)
+{
+   return_msg = {cmd: msg.callback, status: "success", callback: "", payload: "BrowserPlot2D ready"};
+   send(return_msg);
+
+} // ready
+//----------------------------------------------------------------------------------------------------
+function getBrowserInfo(msg)
+{
+   send({cmd: msg.callback, status: "success", callback: "", payload: navigator.userAgent});
+
+} // getBrowserInfo
+//----------------------------------------------------------------------------------------------------
+function getWindowTitle(msg)
+{
+   send({cmd: msg.callback, status: "success", callback: "", payload: window.document.title});
+
+} // getWindowTitle
+//----------------------------------------------------------------------------------------------------
+function setWindowTitle(msg)
+{
+   console.log(msg)
+   var payload = msg.payload;
+   console.log(payload)
+   var newTitle = payload.title;
+   window.document.title = newTitle;
+
+   send({cmd: msg.callback, status: "success", callback: "", payload: window.document.title});
+
+} // setWindowTitle
+//----------------------------------------------------------------------------------------------------
+function getWindowSize(msg)
+{
+   var width = $(window).width()
+   var height = $(window).height()
+   return_msg = {cmd: msg.callback, status: "success", 
+                 callback: "", payload: JSON.stringify({width:width, height: height})};
+   send(return_msg);
+
+} // getWindowSize
+//----------------------------------------------------------------------------------------------------
+$(document).ready(function() {
+
+   plotDiv = $("#browserPlot2dDiv");
+   d3plotDiv = d3.select("#browserPlot2dDiv");
+   console.log("div: " + plotDiv)
+
+   addMessageHandler("ready", ready)   
+   addMessageHandler("getBrowserInfo", getBrowserInfo)
+   addMessageHandler("getWindowTitle", getWindowTitle)   
+   addMessageHandler("setWindowTitle", setWindowTitle)   
+   addMessageHandler("getWindowSize",  getWindowSize)
+   addMessageHandler("plotxy", d3plotPrep)
+   addMessageHandler("getSelection", getSelection)
+
+   $(window).resize(handleWindowResize);
+   handleWindowResize();
+
+   }) // document.ready
+
+//----------------------------------------------------------------------------------------------------
+function brushReader ()
+{
+  console.log("brushReader");
+  selectedRegion = d3brush.extent();
+  x0 = selectedRegion[0][0];
+  x1 = selectedRegion[1][0];
+  width = Math.abs(x0-x1);
+  if(width < 1)
+     selectedRegion = null
+
+}; // d3PlotBrushReader
+//--------------------------------------------------------------------------------
+function d3plotPrep (msg)
+{
+   payload = msg.payload;
+   dataReceived = true;
+
+      // assign global variables
+
+   dataset = [];
+   datasetLength = payload.x.length
+
+   for(var i=0; i < datasetLength; i++){
+     dataset.push({x: payload.x[i], y: payload.y[i]});
+     }
+
+   xMin = msg.payload.xMin;
+   xMax = msg.payload.xMax;
+   yMin = msg.payload.yMin;
+   yMax = msg.payload.yMax;
+
+   d3plot(dataset, xMin, xMax, yMin, yMax)
+
+   send({cmd: msg.callback, status: "success", callback: "", payload: ""});
+
+} // d3plotPrep
+//--------------------------------------------------------------------------------
+function d3plot(dataset, xMin, xMax, yMin, yMax)
+{
+  var width = plotDiv.width();
+  var height = plotDiv.height();
+
+  padding = 50;
+  xScale = d3.scale.linear()
+                 .domain([xMin,xMax])
+                 .range([padding,width-padding]);
+
+  yScale = d3.scale.linear()
+                 .domain([yMin, yMax])
+                 .range([height-padding, padding]); // note inversion 
+
+
+
+    // must remove the svg from a d3-selected object, not just a jQuery object
+  d3plotDiv.select("#plotSVG").remove();  // so that append("svg") is not cumulative
+
+  d3brush = d3.svg.brush()
+        .x(xScale)
+        .y(yScale)
+        .on("brushend", brushReader);
+
+
+  var svg = d3.select("#browserPlot2dDiv")
+      .append("svg")
+      .attr("id", "plotSVG")
+      .attr("width", width)
+      .attr("height", height)
+      .call(d3brush);
+
+  xAxis = d3.svg.axis()
+                .scale(xScale)
+                .ticks(10)
+                .orient("bottom")
+                .tickSize(10);
+
+  yAxis = d3.svg.axis()
+                .scale(yScale)
+                .ticks(10)
+                .tickSize(10)
+                .orient("left");
+
+
+  var xTranslationForYAxis = xScale(0);
+  var yTranslationForXAxis = yScale(10);
+
+  var tooltip = d3plotDiv.append("div")
+                   .attr("class", "tooltip")
+                   .style("position", "absolute")
+                   .style("z-index", "10")
+                   .style("visibility", "hidden")
+                   .text("a simple tooltip");
+
+   svg.selectAll("circle")
+      .data(dataset)
+      .enter()
+      .append("circle")
+      .attr("cx", function(d){
+         return xScale(d.x);
+        })
+      .attr("cy", function(d){
+         return yScale(d.y);
+         })
+      .attr("r", function(d){
+        return 5;
+        })
+      .style("fill", function(d){
+        return "red";
+        })
+      .on("mouseover", function(d,i){   // no id assigned yet...
+         tooltip.text(d.id);
+         return tooltip.style("visibility", "visible");
+         })
+      .on("mousemove", function(){
+         return tooltip.style("top",
+                (d3.event.pageY-10)+"px").style("left",(d3.event.pageX+10)+"px");})
+      .on("mouseout", function(){return tooltip.style("visibility", "hidden");});
+
+   svg.append("g")
+      .attr("class", "axis") 
+      .attr("transform", "translate(0," + (height - padding) + ")")
+      .call(xAxis);
+
+   svg.append("g")
+      .attr("class", "axis") 
+      .attr("transform", "translate(" + padding + ",0)")
+      .call(yAxis);
+
+} // d3plot
+//--------------------------------------------------------------------------------
+function getSelection(msg)
+{
+   var selectedNames = [];
+
+   if(selectedRegion == null){
+      returnMsg = {cmd: msg.callback, callback: "", status: "success", 
+                   payload: selectedNames};
+      console.log("=== returning from getSelection, 1");
+      console.log(returnMsg);
+      send(returnMsg);
+      return;
+      }
+
+
+   x0 = selectedRegion[0][0]
+   x1 = selectedRegion[1][0]
+   y0 = selectedRegion[0][1]
+   y1 = selectedRegion[1][1]
+
+   for(var i=0; i < datasetLength; i++){
+      x = dataset[i].x;
+      y = dataset[i].y;
+      if(x >= x0 & x <= x1 & y >= y0 & y <= y1) {
+        console.log ("TRUE");
+        selectedNames.push("point " + i);
+        }
+     } // for i
+
+   console.log(" found " + selectedNames.length + " selected points");
+   returnMsg = {cmd: msg.callback, callback: "", status: "success", 
+                payload: selectedNames};
+
+   console.log("=== returning from getSelection, 2");
+   console.log(returnMsg);
+   send(returnMsg);
+
+} // getSelection
+//--------------------------------------------------------------------------------
+</script>
+
+</head>
+<body>
+<div id="browserPlot2dDiv"></div>
+</body>
+</html>
+
