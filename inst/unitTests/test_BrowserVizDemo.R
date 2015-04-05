@@ -1,6 +1,8 @@
 library(RUnit)
 library(BrowserVizDemo)
 #--------------------------------------------------------------------------------
+PORT.RANGE <- 8000:8020
+#--------------------------------------------------------------------------------
 runTests <- function()
 {
   testConstructor();
@@ -12,18 +14,17 @@ runTests <- function()
 testConstructor <- function()
 {
    print("--- testConstructor")
-   app <- BrowserVizDemo(quiet=FALSE, port=8000);
+   app <- BrowserVizDemo(PORT.RANGE, quiet=FALSE);
    checkTrue(ready(app))
-   checkEquals(port(app), 8000)
+   checkTrue(port(app) %in% PORT.RANGE)
    closeWebSocket(app)
-   checkTrue(!ready(app))
    
 } # testConstructor
 #--------------------------------------------------------------------------------
 testWindowTitle <- function()
 {
    print("--- testWindowTitle")
-   app <- BrowserVizDemo(8000)
+   app <- BrowserVizDemo(PORT.RANGE)
    checkTrue(ready(app))
    checkEquals(getBrowserWindowTitle(app), "BrowserVizDemo")
    setBrowserWindowTitle(app, "new title");
@@ -35,7 +36,7 @@ testWindowTitle <- function()
 testPlot <- function()
 {
    print("--- testPlot")
-   app <- BrowserVizDemo(port=8000);
+   app <- BrowserVizDemo(PORT.RANGE)
    checkTrue(ready(app))
 
    title <- "simple xy plot test";
@@ -45,8 +46,9 @@ testPlot <- function()
    checkEquals(getSelection(app), list())
 
    plot(app, 1:10, (1:10)^2)
-     # without direct manipulation of the plotted surface, there will still
-     # be no selections
+
+     # without direct manipulation of the plotted surface byt the user, there
+     # will still be no selections
 
    checkEquals(getSelection(app), list())
    closeWebSocket(app)
