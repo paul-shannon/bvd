@@ -121,7 +121,7 @@ BrowserVizDemo(portRange, host="localhost", title="BrowserVizDemo", quiet=TRUE)
   getBrowserWindowTitle(plotter)
 
   ## set and get the windowTitle
-  setBrowserWindowTitle(plotter, "new title", proclaim=TRUE)
+  setBrowserWindowTitle(plotter, "new title")
   getBrowserWindowTitle(plotter)
 
   ## BrowserVizDemo provides another information method which, like the others, will apply
