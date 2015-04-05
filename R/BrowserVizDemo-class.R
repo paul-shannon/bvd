@@ -1,7 +1,7 @@
 library (httpuv)
 library (methods)
 #----------------------------------------------------------------------------------------------------
-browserVizDemoBrowserFile <- system.file(package="BrowserVizDemo", "scripts", "demo2.html")
+browserVizDemoBrowserFile <- system.file(package="BrowserVizDemo", "scripts", "browserVizDemo.html")
 #----------------------------------------------------------------------------------------------------
 .BrowserVizDemo <- setClass ("BrowserVizDemoClass", 
                             representation = representation (),
