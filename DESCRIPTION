@@ -1,8 +1,8 @@
 Package: BrowserVizDemo
 Type: Package
 Title: BrowserVizDemo: How to subclass BrowserViz
-Version: 0.99.15
-Date: 2015-04-05
+Version: 0.99.16
+Date: 2015-04-07
 Author: Paul Shannon
 Maintainer: Paul Shannon <pshannon@fredhutch.org>
 Depends: R (>= 3.1.1), BrowserViz

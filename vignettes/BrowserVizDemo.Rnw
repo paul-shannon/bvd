@@ -99,17 +99,16 @@ The \Biocpkg{BrowserVizDemo} package adds only two methods to those provided by 
 These methods are inherited from \Biocpkg{BrowserViz}:
 
 \begin{itemize}
-   \item \emph{port}:
-   \item \emph{ready}:
-   \item \emph{browserResponseReady}:
-   \item \emph{getBrowserResponse}:
-   \item \emph{closeWebSocket}:
-   \item \emph{send}:
-   \item \emph{getBrowserWindowSize}:
-   \item \emph{getBrowserWindowTitle}:
-   \item \emph{setBrowserWindowTitle}:
+   \item \emph{port}
+   \item \emph{ready}
+   \item \emph{browserResponseReady}
+   \item \emph{getBrowserResponse}
+   \item \emph{closeWebSocket}
+   \item \emph{send}
+   \item \emph{getBrowserWindowSize}
+   \item \emph{getBrowserWindowTitle}
+   \item \emph{setBrowserWindowTitle}
 \end{itemize}
-
 
 S4 class inheritance thus proves very powerful.  \Biocpkg{BrowserViz} has almost 400 lines of R code;
 \Biocpkg{BrowserVizDemo} has few than 60.  In addition to the utility methods listed above, the base
@@ -118,13 +117,27 @@ web socket setup, port choice, send and receive, JSON transformations, send-mess
 latencies, specifying functions to be called when incoming messages arrive.  This ensures that the R 
 programming of any derived class is as simple as possible.
 
-Neither Javascript nor HTML, however, provide any native mechanism for class inheritance.  So in order to create
-the web component of a new visualization application, there is unfortunately no alternative to copying the 
-\Biocpkg{BrowserVizDemo} \emph{inst/scripts/demo.html} file into your new package's \emph{inst/scripts} 
-directory, preserving everything that is of use, then adding your own HTML markup, CSS, Javascript
-and probably jQuery, Boostrap and d3.  The copied Javascript code, like the corresponding code in R,
-establishes the websocket connection and is easily configured to dispatch incoming messages to 
-the functions you write.
+We provide a similar benefit for the Javascript, though neither proper classes nor inheritance 
+come native with the language.  Instead \Biocpkg{BrowserViz} includes, and we elsewhere host, 
+\emph{BrowserViz.js} a module of about 300 lines, which exposes about fifteen utility functions.  These,
+like their counterparts in the BrowserViz S4 class, provide socket initialization, functiond dispatch, 
+management of functions to call when the HTML DOM is ready, and when the socket connection has been
+opened and is ready for use.   
+
+We recommend that the HTML/Javascript/CSS portion of every BrowserViz subclass include this file in its
+header.  The capabilities it provides are then available:
+
+\begin{verbatim}
+  hub = BrowserViz();   
+  demo = BrowserVizDemo();
+  demo.setHub(hub)
+  demo.addMessageHandlers()
+  hub.addOnDocumentReadyFunction(demo.initializeUI);
+    // configure and open socket, run queued functions, enable
+    // dispatch of incoming commands their Javascript handler functions
+  hub.start();
+\end{verbatim}
+
 
 <<plotDemo>>=
 library(BrowserVizDemo)
@@ -133,8 +146,9 @@ stopifnot(ready(plotter))
 title <- "simple xy plot test";
 setBrowserWindowTitle(plotter, title)
 plot(plotter, 1:10, (1:10)^2)
+selectedPoints <- getSelection(plotter)
+  # selectedPoints will be an empty list -unless- you have selected some in the browser with your mouse.
 closeWebSocket(plotter)
 @ 
-
 
 \end{document}
