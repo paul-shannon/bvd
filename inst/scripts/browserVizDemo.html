@@ -2,10 +2,9 @@
 <html>
 <head>
    <title>BrowserVizDemo</title>
-   <script src="http://oncoscape.sttrcancer.org/oncoscape/js/jquery-2.1.1.js"></script>
-   <script src="http://oncoscape.sttrcancer.org/oncoscape/js/BrowserViz.js"></script>
+   <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.2.0/jquery.min.js"></script>
+   <script src="https://cdn.rawgit.com/paul-shannon/CDN/master/js/BrowserViz.js"></script>
    <script src="http://s3.amazonaws.com/oncoscape/js/d3.min.js"></script>
-
 <style>
 
 .center {
@@ -34,11 +33,11 @@
   stroke: #f00;
   }
 
-.domain { 
-  fill: none; 
-  stroke: black; 
-  stroke-width; 1; 
-  } 
+.domain {
+  fill: none;
+  stroke: black;
+  stroke-width; 1;
+  }
 
 </style>
 
@@ -101,7 +100,7 @@ function brushReader ()
   x0 = selectedRegion[0][0];
   x1 = selectedRegion[1][0];
   width = Math.abs(x0-x1);
-  if(width < 1)
+  if(width < 0.001)
      selectedRegion = null
 
 }; // d3PlotBrushReader
@@ -144,7 +143,7 @@ function d3plot(dataset, xMin, xMax, yMin, yMax)
 
   yScale = d3.scale.linear()
                  .domain([yMin, yMax])
-                 .range([height-padding, padding]); // note inversion 
+                 .range([height-padding, padding]); // note inversion
 
 
 
@@ -213,12 +212,12 @@ function d3plot(dataset, xMin, xMax, yMin, yMax)
       .on("mouseout", function(){return tooltip.style("visibility", "hidden");});
 
    svg.append("g")
-      .attr("class", "axis") 
+      .attr("class", "axis")
       .attr("transform", "translate(0," + (height - padding) + ")")
       .call(xAxis);
 
    svg.append("g")
-      .attr("class", "axis") 
+      .attr("class", "axis")
       .attr("transform", "translate(" + padding + ",0)")
       .call(yAxis);
 
@@ -229,14 +228,13 @@ function getSelection(msg)
    var selectedNames = [];
 
    if(selectedRegion == null){
-      var returnMsg = {cmd: msg.callback, callback: "", status: "success", 
+      var returnMsg = {cmd: msg.callback, callback: "", status: "success",
                         payload: selectedNames};
-      console.log("=== returning from getSelection, 1");
+      console.log("=== returning from getSelection, no selected points");
       console.log(returnMsg);
       hub.send(returnMsg);
       return;
       }
-
 
    x0 = selectedRegion[0][0]
    x1 = selectedRegion[1][0]
@@ -253,7 +251,7 @@ function getSelection(msg)
      } // for i
 
    console.log(" found " + selectedNames.length + " selected points");
-   var returnMsg = {cmd: msg.callback, callback: "", status: "success", 
+   var returnMsg = {cmd: msg.callback, callback: "", status: "success",
                     payload: selectedNames};
 
    console.log("=== returning from getSelection, 2");
@@ -272,7 +270,7 @@ function getSelection(msg)
 }); // BrowserVizDemo
 //--------------------------------------------------------------------------------
 
-hub = BrowserViz();   
+hub = BrowserViz();
 bvDemo = BrowserVizDemo();
 bvDemo.setHub(hub)
 bvDemo.addMessageHandlers()
