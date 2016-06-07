@@ -8,7 +8,7 @@ runTests <- function()
   testConstructor();
   testWindowTitle()
   testPlot()
-  
+
 } # runTests
 #--------------------------------------------------------------------------------
 testConstructor <- function()
@@ -18,7 +18,7 @@ testConstructor <- function()
    checkTrue(ready(app))
    checkTrue(port(app) %in% PORT.RANGE)
    closeWebSocket(app)
-   
+
 } # testConstructor
 #--------------------------------------------------------------------------------
 testWindowTitle <- function()
@@ -75,6 +75,8 @@ demo <- function()
    checkEquals(getSelection(app), list())
 
    app
-   
+
 } # demo
 #--------------------------------------------------------------------------------
+if(!interactive())
+    runTests()
